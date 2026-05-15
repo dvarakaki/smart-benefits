@@ -326,11 +326,11 @@ INSERT INTO tb_auditoria_transacao VALUES (
 
 | Nome | Responsabilidades |
 |------|-------------------|
-| **Davi Arakaki** | Modelagem do Banco, Validação MCC, Integração Python |
-| **Felipe Jorge** | Procedures, Triggers de Auditoria, Documentação |
-| **Giulia Manara** | Views Gerenciais, Relatórios, Massa de Dados |
-| **João Maldonado** | Functions, Procedure de Carga Mensal, Testes |
-| **Luiza Cursino** | Documentação, README, Slides, Apresentação |
+| **Davi Arakaki** | Functions , Integração Python, Triggers |
+| **Felipe Jorge** | Modelagem do Banco, Documentação |
+| **Giulia Manara** | Modelagem do Banco, Slides, README |
+| **João Maldonado** | Modelagem do Banco, Views, Testes |
+| **Luiza Cursino** | Script SQL, Triggers, Validação MCC |
 
 ---
 
@@ -374,4 +374,3 @@ A arquitetura é **escalável**, **auditável** e **segura**, atendendo todos os
 
 ---
 
----
