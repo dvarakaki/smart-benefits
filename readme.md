@@ -1,4 +1,3 @@
-```markdown
 # 🚀 Smart Benefits
 
 > **Motor de Benefícios Inteligente** - Sistema corporativo de gestão de benefícios desenvolvido em PostgreSQL com foco em integridade transacional, segregação de saldos por categoria, auditoria completa e automação de processos de RH.
