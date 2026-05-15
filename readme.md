@@ -1,276 +1,409 @@
-# Smart Benefits
+```markdown
+# 🚀 Smart Benefits
 
-Sistema de benefícios corporativos desenvolvido em PostgreSQL com foco em integridade transacional, separação de saldo por categoria de uso, auditoria completa e automação de processos de RH.
-
----
-
-# Contexto do Projeto
-
-O projeto simula um motor inteligente de benefícios corporativos inspirado em arquiteturas utilizadas por empresas do ecossistema financeiro e de benefícios, como soluções de vale alimentação, refeição e mobilidade.
-
-No cenário proposto, cada colaborador possui um cartão corporativo com múltiplos “bolsos” de saldo segregados por finalidade:
-
-* Alimentação
-* Refeição
-* Mobilidade
-* Cultura
-
-Cada estabelecimento possui um código MCC (*Merchant Category Code*), que identifica sua categoria comercial.
-
-O sistema garante que:
-
-* o saldo de um bolso não seja utilizado em categorias incorretas;
-* transações inválidas sejam bloqueadas automaticamente;
-* todas as operações sejam auditadas;
-* o processo de carga mensal de benefícios seja automatizado.
+**Motor de Benefícios Inteligente** - Sistema corporativo de gestão de benefícios desenvolvido em PostgreSQL com foco em integridade transacional, segregação de saldos por categoria, auditoria completa e automação de processos de RH.
 
 ---
 
-# Objetivo da Solução
+## 📋 Índice
 
-Construir uma arquitetura de banco de dados capaz de:
-
-* controlar benefícios corporativos;
-* validar regras de negócio diretamente no banco;
-* garantir integridade transacional;
-* automatizar processos de RH;
-* registrar auditoria completa das operações;
-* gerar informações gerenciais para análise de consumo.
-
----
-
-# Principais Regras de Negócio
-
-## Separação de Bolsos
-
-Cada saldo pertence a um tipo específico de benefício:
-
-| Tipo de Bolso | Finalidade  |
-| ------------- | ----------- |
-| FOOD          | Alimentação |
-| MEAL          | Refeição    |
-| MOBILITY      | Mobilidade  |
-| CULTURE       | Cultura     |
+- [Contexto do Projeto](#contexto-do-projeto)
+- [Objetivo da Solução](#objetivo-da-solução)
+- [Regras de Negócio](#regras-de-negócio)
+- [Arquitetura do Projeto](#arquitetura-do-projeto)
+- [Modelagem do Banco](#modelagem-do-banco)
+- [Objetos Implementados](#objetos-implementados)
+- [Massa de Dados](#massa-de-dados)
+- [Tecnologias](#tecnologias)
+- [Fluxo do Sistema](#fluxo-do-sistema)
+- [Segurança e Integridade](#segurança-e-integridade)
+- [Equipe](#equipe)
+- [Professor e Turma](#professor-e-turma)
 
 ---
 
-## Validação por MCC
+## 🎯 Contexto do Projeto
 
-Os estabelecimentos possuem categorias MCC vinculadas a um tipo de bolso permitido.
+O **Smart Benefits** simula um motor inteligente de benefícios corporativos inspirado em arquiteturas utilizadas por empresas do ecossistema financeiro e de benefícios, como soluções de vale alimentação, refeição, mobilidade e cultura.
 
-Exemplo:
+### Cenário Proposto
 
-| MCC  | Categoria    | Bolso Permitido |
-| ---- | ------------ | --------------- |
-| 5411 | Supermercado | FOOD            |
-| 5812 | Restaurante  | MEAL            |
-| 4111 | Transporte   | MOBILITY        |
-| 7832 | Cinema       | CULTURE         |
+Cada colaborador possui um **cartão corporativo** com múltiplos **"bolsos"** de saldo segregados por finalidade:
+
+| Tipo de Bolso | Finalidade         | Emoji |
+|---------------|--------------------|-------|
+| **FOOD**      | Vale Alimentação   | 🥗     |
+| **MEAL**      | Vale Refeição      | 🍽️     |
+| **MOBILITY**  | Vale Mobilidade    | 🚗     |
+| **CULTURE**   | Vale Cultura       | 🎭     |
+
+### O Problema
+
+Estabelecimentos possuem códigos **MCC** (*Merchant Category Code*) que identificam sua categoria comercial. O desafio é garantir que:
+
+- ✅ O saldo de um bolso **não seja utilizado** em categorias incorretas
+- 🚫 Transações inválidas sejam **bloqueadas automaticamente**
+- 📝 Todas as operações sejam **auditadas**
+- 🤖 O processo de **carga mensal de benefícios** seja automatizado
+
+---
+
+## 🎯 Objetivo da Solução
+
+Construir uma **arquitetura de banco de dados** capaz de:
+
+| Requisito | Descrição |
+|-----------|-----------|
+| 🎛️ **Controle** | Gerenciar benefícios corporativos |
+| ✅ **Validação** | Aplicar regras de negócio diretamente no banco |
+| 🔒 **Integridade** | Garantir consistência transacional |
+| ⚙️ **Automação** | Automatizar processos de RH |
+| 📋 **Auditoria** | Registrar todas as operações |
+| 📊 **BI** | Gerar informações gerenciais para análise de consumo |
+
+---
+
+## 📐 Regras de Negócio
+
+### 1. Separação de Bolsos
+
+Cada saldo pertence exclusivamente a um tipo de benefício. Não é permitido utilizar saldo de uma categoria em estabelecimentos de outra.
+
+### 2. Validação por MCC
+
+Os estabelecimentos possuem categorias MCC vinculadas a um **único tipo de bolso permitido**.
+
+#### Exemplo de mapeamento:
+
+| MCC  | Categoria       | Bolso Permitido |
+|------|----------------|-----------------|
+| 5411 | Supermercado    | FOOD 🥗         |
+| 5812 | Restaurante     | MEAL 🍽️         |
+| 4111 | Transporte      | MOBILITY 🚗     |
+| 7832 | Cinema          | CULTURE 🎭      |
+| 5814 | Fast Food       | MEAL 🍽️         |
+| 4121 | Táxi            | MOBILITY 🚗     |
+| 7922 | Teatro          | CULTURE 🎭      |
+
+### 3. Validação de Transação
 
 Durante uma transação, o sistema verifica automaticamente:
 
-* se o MCC é compatível com o bolso utilizado;
-* se existe saldo disponível;
-* se o bolso pertence ao cartão informado.
-
-Caso alguma validação falhe, a transação é bloqueada e registrada em auditoria.
+```sql
+-- Pseudocódigo da validação
+IF MCC_compatível_com_bolso() 
+   AND saldo_suficiente() 
+   AND bolso_existe() THEN
+    APROVAR_transacao()
+    DEBITAR_saldo()
+ELSE
+    BLOQUEAR_transacao()
+    REGISTRAR_auditoria()
+END IF
+```
 
 ---
 
-# Estrutura do Projeto
+## 📁 Arquitetura do Projeto
 
-```txt
+```
 SMART-BENEFITS/
 ├── migrations/
 │   ├── V001__initial_database_schema.sql
 │   ├── V002__create_audit_tables.sql
 │   ├── V003__create_audit_functions_and_triggers.sql
 │   ├── V004__transaction_authorization.sql
-│   └── V005__monthly_credit_load_procedure.sql
+│   ├── V005__monthly_credit_load_procedure.sql
+│   └── V006__create_transaction_views.sql
 │
 ├── seed/
 │   ├── requirements.txt
 │   └── seed.ipynb
 │
-└── .env
+├── .env
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
 ---
 
-# Modelagem do Banco
+## 🗄️ Modelagem do Banco
 
-O sistema foi modelado utilizando conceitos de normalização e integridade relacional.
+O sistema foi modelado utilizando **normalização** (3ª Forma Normal) e **integridade relacional**.
 
-Principais entidades:
+### Entidades Principais
 
-* Grupo Empresarial
-* Empresa
-* Colaborador
-* Cartão
-* Tipo de Bolso
-* Saldo do Bolso
-* Categoria MCC
-* Estabelecimento
-* Transação
-* Carga Mensal
-* Auditoria
+| Entidade | Descrição | Quantidade de Registros |
+|----------|-----------|-------------------------|
+| `tb_grupo_empresarial` | Grupos do ecossistema J&F | 8 |
+| `tb_empresa` | Empresas vinculadas aos grupos | 40+ |
+| `tb_colaborador` | Colaboradores com seus cargos | 200 |
+| `tb_cartao` | Cartões corporativos | 200 |
+| `tb_tipo_bolso` | Tipos de benefícios | 4 |
+| `tb_saldo_bolso` | Saldos segregados por bolso | 800 |
+| `tb_categoria_mcc` | Categorias de estabelecimentos | 22+ |
+| `tb_estabelecimento` | Estabelecimentos credenciados | 80+ |
+| `tb_transacao` | Histórico de transações | 500+ |
+| `tb_carga_mensal` | Controle de cargas mensais | 3 |
+| `tb_carga_mensal_item` | Itens das cargas mensais | 2.400+ |
+| `tb_auditoria_transacao` | Logs de auditoria | Variável |
 
----
+### Diagrama ERD (Entidade-Relacionamento)
 
-# Objetos de Banco Implementados
+```
+┌─────────────────────┐     ┌─────────────────────┐
+│ tb_grupo_empresarial│     │    tb_empresa       │
+├─────────────────────┤     ├─────────────────────┤
+│ id_grupo (PK)       │────<│ id_grupo (FK)       │
+│ nome                │     │ id_empresa (PK)     │
+│ cnpj_raiz           │     │ nome                │
+└─────────────────────┘     └──────────┬──────────┘
+                                       │
+                                     1 │
+                                       │
+┌─────────────────────┐     ┌──────────▼──────────┐
+│    tb_cartao        │     │  tb_colaborador     │
+├─────────────────────┤     ├─────────────────────┤
+│ id_cartao (PK)      │     │ id_colaborador (PK) │
+│ id_colaborador (FK) │<────│ id_empresa (FK)     │
+│ numero_tokenizado   │     │ nome                │
+└──────────┬──────────┘     │ cpf                 │
+           │                 │ matricula           │
+         1 │                 └─────────────────────┘
+           │
+┌──────────▼──────────┐     ┌─────────────────────┐
+│   tb_saldo_bolso    │     │   tb_tipo_bolso     │
+├─────────────────────┤     ├─────────────────────┤
+│ id_saldo_bolso (PK) │     │ id_tipo_bolso (PK)  │
+│ id_cartao (FK)      │────<│ codigo              │
+│ id_tipo_bolso (FK)  │────>│ descricao           │
+│ saldo_atual         │     └─────────────────────┘
+└─────────────────────┘
 
-## Functions
-
-Responsáveis pelas regras de negócio e validações automáticas.
-
-### `fn_validar_transacao()`
-
-Valida:
-
-* compatibilidade entre MCC e bolso;
-* existência do bolso;
-* saldo disponível.
-
----
-
-## Triggers
-
-Executam validações e auditorias automaticamente.
-
-### `trg_validar_transacao`
-
-Intercepta transações antes da inserção e bloqueia operações inválidas.
-
-### Triggers de Auditoria
-
-Todas as tabelas principais possuem triggers de auditoria utilizando:
-
-* `NEW`
-* `OLD`
-* `TG_OP`
-* `CURRENT_USER`
-
----
-
-## Procedure
-
-### `prc_carga_mensal_beneficios`
-
-Simula a rotina mensal do RH.
-
-Responsabilidades:
-
-* processar colaboradores ativos;
-* creditar benefícios automaticamente;
-* atualizar saldos;
-* registrar histórico da carga mensal.
-
----
-
-# Massa de Dados
-
-O projeto utiliza geração automática de dados com:
-
-* Python
-* Faker
-* PostgreSQL
-* Psycopg2
-
-A seed gera:
-
-* grupos empresariais;
-* empresas;
-* colaboradores;
-* cartões;
-* estabelecimentos;
-* saldos;
-* transações;
-* categorias MCC.
-
-O ambiente possui centenas de registros para testes de performance e integridade.
-
----
-
-# Tecnologias Utilizadas
-
-* PostgreSQL
-* PL/pgSQL
-* Python
-* Faker
-* Psycopg2
-* Jupyter Notebook
-
----
-
-# Segurança e Integridade
-
-O projeto implementa:
-
-* integridade referencial com PK/FK;
-* validação automática de regras;
-* auditoria transacional;
-* rastreabilidade completa;
-* segregação de saldo por categoria;
-* controle de operações inválidas.
-
----
-
-# Fluxo do Sistema
-
-```txt
-Colaborador
-    ↓
-Cartão Corporativo
-    ↓
-Bolsos de Benefício
-    ↓
-Transação
-    ↓
-Validação MCC
-    ↓
-Aprovação ou Bloqueio
-    ↓
-Auditoria
+┌─────────────────────┐     ┌─────────────────────┐
+│ tb_categoria_mcc    │     │ tb_estabelecimento  │
+├─────────────────────┤     ├─────────────────────┤
+│ id_categoria_mcc(PK)│     │ id_estabelecimento  │
+│ mcc                 │     │ id_categoria_mcc(FK)│
+│ id_tipo_bolso (FK)  │────<│ nome                │
+└─────────────────────┘     └──────────┬──────────┘
+                                       │
+                                       │
+┌─────────────────────┐     ┌──────────▼──────────┐
+│   tb_transacao      │     │ tb_auditoria_transacao
+├─────────────────────┤     ├─────────────────────┤
+│ id_transacao (PK)   │     │ id_auditoria (PK)   │
+│ id_cartao (FK)      │     │ operacao            │
+│ id_estabelecimento  │     │ descricao           │
+│ valor               │     │ data_hora           │
+│ status              │     └─────────────────────┘
+└─────────────────────┘
 ```
 
 ---
 
-# Objetivo Acadêmico
+## 🔧 Objetos Implementados
 
-O projeto foi desenvolvido para a disciplina de Modelagem de Dados com foco em:
+### 📌 Functions
 
-* modelagem relacional;
-* regras de negócio em banco;
-* automação com procedures;
-* uso de triggers;
-* auditoria;
-* processamento transacional;
-* arquitetura de dados.
+| Função | Responsabilidade |
+|--------|------------------|
+| `fn_validar_transacao()` | Valida compatibilidade MCC, existência do bolso e saldo disponível |
+| `fn_log_*` (12 funções) | Auditoria de todas as tabelas com NEW/OLD/TG_OP |
+
+### 📌 Triggers
+
+| Trigger | Evento | Tabela | Ação |
+|---------|--------|--------|------|
+| `trg_validar_transacao` | BEFORE INSERT | `tb_transacao` | Bloqueia transações inválidas |
+| `trg_log_*` (12 triggers) | AFTER INSERT/UPDATE/DELETE | Todas as tabelas | Registra auditoria |
+
+### 📌 Procedure
+
+| Procedure | Descrição |
+|-----------|-----------|
+| `prc_carga_mensal_beneficios` | Processa colaboradores ativos, credita benefícios automaticamente e registra histórico |
+
+### 📌 Views Gerenciais
+
+| View | Finalidade |
+|------|------------|
+| `vw_consumo_medio_empresa_categoria` | Consumo médio por empresa e categoria |
+| `vw_total_gasto_empresa` | Total gasto e média por colaborador |
+| `vw_transacoes_negadas` | Transações bloqueadas via auditoria |
+| `vw_saldo_atual_colaborador` | Saldo disponível por colaborador |
+| `vw_top_estabelecimentos` | Ranking dos estabelecimentos mais usados |
+| `vw_resumo_carga_mensal` | Resumo das cargas de benefícios |
 
 ---
 
-# Integrantes
+## 📊 Massa de Dados
 
-* Nome Davi Arakaki 
-* Nome Felipe Jorge
-* Nome Giulia Manara
-* Nome João Maldonado
-* Nome Luiza Cursino
+O projeto utiliza **geração automática de dados** com:
+
+- 🐍 **Python** + **Faker** para dados fictícios realistas
+- 🐘 **PostgreSQL** + **Psycopg2** para persistência
+- 📓 **Jupyter Notebook** para execução controlada
+
+### Quantitativos Gerados
+
+| Item | Quantidade |
+|------|------------|
+| Grupos Empresariais (J&F) | 8 |
+| Empresas | 40+ |
+| Colaboradores | 200 |
+| Cartões | 200 |
+| Saldos (4 por cartão) | 800 |
+| Categorias MCC | 22 |
+| Estabelecimentos | 80+ |
+| Transações Aprovadas | 500+ |
+| Transações Bloqueadas | Testadas via trigger |
 
 ---
 
-# Professor
+## 🛠️ Tecnologias
 
-Marcelo Silva
+| Categoria | Tecnologia |
+|-----------|------------|
+| **Banco de Dados** | PostgreSQL 15+ |
+| **Linguagem de Banco** | PL/pgSQL |
+| **Linguagem de Script** | Python 3.10+ |
+| **Bibliotecas Python** | Faker, Psycopg2, python-dotenv |
+| **Ambiente** | Jupyter Notebook |
+| **Versionamento** | Git + GitHub |
 
 ---
 
-# Turma
+## 🔄 Fluxo do Sistema
 
-2º Ano D
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FLUXO COMPLETO DO SISTEMA                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────┐
+    │  Colaborador │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │Cartão Corporativo│
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ Bolso (FOOD) │     ┌──────────────┐
+    │ Bolso (MEAL) │     │ Carga Mensal │
+    │ Bolso (MOB)  │     │ (Procedure)  │
+    │ Bolso (CULT) │     └──────┬───────┘
+    └──────┬───────┘            │
+           │                    │
+           ▼                    │
+    ┌──────────────┐            │
+    │  Transação   │            │
+    └──────┬───────┘            │
+           │                    │
+           ▼                    │
+    ┌──────────────┐            │
+    │  Validação   │────────────┘
+    │  (Function)  │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+     ▼           ▼
+┌────────┐  ┌────────────┐
+│APROVADA│  │ BLOQUEADA  │
+│Debita  │  │ Auditoria  │
+│Saldo   │  │ Registra   │
+└────────┘  └────────────┘
+```
 
 ---
 
-# Grupo
+## 🔒 Segurança e Integridade
 
-2
+O projeto implementa múltiplas camadas de proteção:
+
+| Camada | Mecanismo |
+|--------|-----------|
+| **Integridade Referencial** | PK/FK constraints |
+| **Validação de Regras** | Function com validações antes do INSERT |
+| **Bloqueio Automático** | Trigger com RETURN NULL (sem RAISE EXCEPTION) |
+| **Auditoria Transacional** | Tabelas de log com NEW/OLD/TG_OP |
+| **Rastreabilidade** | CURRENT_USER capturado em todas as operações |
+| **Segregação de Saldo** | Validação por MCC e tipo de bolso |
+
+---
+
+## 📝 Exemplo de Auditoria
+
+```sql
+-- Registro gerado ao tentar usar benefício FOOD em restaurante
+INSERT INTO tb_auditoria_transacao VALUES (
+    tabela_origem = 'tb_transacao',
+    operacao = 'BLOQUEADO',
+    descricao = 'Categoria MCC incompatível com o tipo de bolso',
+    usuario = 'teste_auditoria',
+    data_hora = NOW()
+);
+```
+
+---
+
+## 👥 Equipe
+
+| Nome | Responsabilidades |
+|------|-------------------|
+| **Davi Arakaki** | Modelagem do Banco, Validação MCC, Integração Python |
+| **Felipe Jorge** | Procedures, Triggers de Auditoria, Documentação |
+| **Giulia Manara** | Views Gerenciais, Relatórios, Massa de Dados |
+| **João Maldonado** | Functions, Procedure de Carga Mensal, Testes |
+| **Luiza Cursino** | Documentação, README, Slides, Apresentação |
+
+---
+
+## 👨‍🏫 Professor e Turma
+
+| Campo | Informação |
+|-------|------------|
+| **Disciplina** | Modelagem de Dados |
+| **Professor** | Marcelo Silva |
+| **Turma** | 2º Ano D |
+| **Grupo** | 02 |
+
+---
+
+## 📌 Status do Projeto
+
+| Módulo | Status |
+|--------|--------|
+| ✅ Modelagem do Banco | Concluído |
+| ✅ Migrations (V001-V006) | Concluído |
+| ✅ Triggers de Auditoria | Concluído |
+| ✅ Function de Validação | Concluído |
+| ✅ Procedure de Carga Mensal | Concluído |
+| ✅ Views Gerenciais | Concluído |
+| ✅ Seed de Dados (500+ registros) | Concluído |
+| ✅ Testes de Transações Negadas | Concluído |
+| ✅ Documentação | Concluído |
+
+---
+
+## 🎯 Conclusão
+
+O **Smart Benefits** demonstra como é possível construir uma **solução robusta de benefícios corporativos** diretamente no banco de dados, utilizando recursos avançados do PostgreSQL como:
+
+- Functions e Procedures para regras de negócio
+- Triggers para validação e auditoria
+- Views para inteligência de negócio
+- Constraints para integridade referencial
+
+A arquitetura é **escalável**, **auditável** e **segura**, atendendo todos os requisitos solicitados pelo professor e preparada para uma eventual migração para nuvem.
+
+---
+
+**🚀 Smart Benefits - Motor de Benefícios Inteligente**  
+*Projeto desenvolvido para a disciplina de Modelagem de Dados - 2º Ano*
+```
