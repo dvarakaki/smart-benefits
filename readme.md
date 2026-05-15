@@ -375,8 +375,3 @@ A arquitetura é **escalável**, **auditável** e **segura**, atendendo todos os
 ---
 
 ---
-
-**🚀 Smart Benefits - Motor de Benefícios Inteligente**
-
-*Projeto desenvolvido para a disciplina de Modelagem de Dados - 2º Ano*
-```
