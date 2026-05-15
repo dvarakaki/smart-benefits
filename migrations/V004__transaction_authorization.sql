@@ -1,5 +1,5 @@
 -- =========================================================
--- FUNCTION: VALIDAR TRANSACAO
+-- CORRIGIR FUNCTION DE VALIDAÇÃO (COM AUDITORIA)
 -- =========================================================
 
 CREATE OR REPLACE FUNCTION fn_validar_transacao()
@@ -9,7 +9,9 @@ AS $$
 DECLARE
     v_saldo_atual          NUMERIC(12,2);
     v_tipo_bolso_mcc       INTEGER;
+    v_motivo               VARCHAR(255);
 BEGIN
+    -- 1. Verificar compatibilidade do MCC com o tipo de bolso
     SELECT id_tipo_bolso
     INTO v_tipo_bolso_mcc
     FROM tb_estabelecimento e
@@ -18,7 +20,9 @@ BEGIN
     WHERE e.id_estabelecimento = NEW.id_estabelecimento;
 
     IF v_tipo_bolso_mcc <> NEW.id_tipo_bolso THEN
-
+        v_motivo := 'Categoria MCC incompatível com o tipo de bolso.';
+        
+        -- Registrar na auditoria ANTES do exception
         INSERT INTO tb_auditoria_transacao (
             tabela_origem,
             id_registro,
@@ -29,15 +33,15 @@ BEGIN
         VALUES (
             'tb_transacao',
             NEW.id_cartao,
-            'BLOQUEIO',
+            'BLOQUEADO',
             NEW.usuario_registro,
-            'Categoria MCC incompatível com o tipo de bolso.'
+            v_motivo
         );
-
-        RAISE EXCEPTION
-            'Transação negada: MCC incompatível com o bolso informado.';
+        
+        RAISE EXCEPTION 'Transação negada: %', v_motivo;
     END IF;
-	
+    
+    -- 2. Verificar saldo disponível
     SELECT saldo_atual
     INTO v_saldo_atual
     FROM tb_saldo_bolso
@@ -45,7 +49,8 @@ BEGIN
       AND id_tipo_bolso = NEW.id_tipo_bolso;
 
     IF v_saldo_atual IS NULL THEN
-
+        v_motivo := 'Bolso não encontrado para o cartão.';
+        
         INSERT INTO tb_auditoria_transacao (
             tabela_origem,
             id_registro,
@@ -56,17 +61,17 @@ BEGIN
         VALUES (
             'tb_transacao',
             NEW.id_cartao,
-            'BLOQUEIO',
+            'BLOQUEADO',
             NEW.usuario_registro,
-            'Bolso não encontrado para o cartão.'
+            v_motivo
         );
-
-        RAISE EXCEPTION
-            'Transação negada: bolso não encontrado.';
+        
+        RAISE EXCEPTION 'Transação negada: %', v_motivo;
     END IF;
 
     IF v_saldo_atual < NEW.valor THEN
-
+        v_motivo := 'Saldo insuficiente.';
+        
         INSERT INTO tb_auditoria_transacao (
             tabela_origem,
             id_registro,
@@ -77,15 +82,15 @@ BEGIN
         VALUES (
             'tb_transacao',
             NEW.id_cartao,
-            'BLOQUEIO',
+            'BLOQUEADO',
             NEW.usuario_registro,
-            'Saldo insuficiente.'
+            v_motivo
         );
-
-        RAISE EXCEPTION
-            'Transação negada: saldo insuficiente.';
+        
+        RAISE EXCEPTION 'Transação negada: %', v_motivo;
     END IF;
 
+    -- 3. Se passou por todas as validações, debitar o saldo
     UPDATE tb_saldo_bolso
     SET
         saldo_atual = saldo_atual - NEW.valor,
@@ -93,13 +98,41 @@ BEGIN
     WHERE id_cartao = NEW.id_cartao
       AND id_tipo_bolso = NEW.id_tipo_bolso;
 
+    -- Registrar transação aprovada na auditoria (opcional)
+    INSERT INTO tb_auditoria_transacao (
+        tabela_origem,
+        id_registro,
+        operacao,
+        usuario,
+        descricao
+    )
+    VALUES (
+        'tb_transacao',
+        NEW.id_cartao,
+        'APROVADA',
+        NEW.usuario_registro,
+        'Transação autorizada com sucesso.'
+    );
+
     RETURN NEW;
 
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Garantir que qualquer erro não esperado também seja registrado
+        INSERT INTO tb_auditoria_transacao (
+            tabela_origem,
+            id_registro,
+            operacao,
+            usuario,
+            descricao
+        )
+        VALUES (
+            'tb_transacao',
+            NEW.id_cartao,
+            'ERRO',
+            NEW.usuario_registro,
+            'Erro inesperado: ' || SQLERRM
+        );
+        RAISE;
 END;
 $$;
-
-CREATE TRIGGER trg_validar_transacao
-BEFORE INSERT
-ON tb_transacao
-FOR EACH ROW
-EXECUTE FUNCTION fn_validar_transacao();
