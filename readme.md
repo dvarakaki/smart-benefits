@@ -1,24 +1,26 @@
 ```markdown
 # 🚀 Smart Benefits
 
-**Motor de Benefícios Inteligente** - Sistema corporativo de gestão de benefícios desenvolvido em PostgreSQL com foco em integridade transacional, segregação de saldos por categoria, auditoria completa e automação de processos de RH.
+> **Motor de Benefícios Inteligente** - Sistema corporativo de gestão de benefícios desenvolvido em PostgreSQL com foco em integridade transacional, segregação de saldos por categoria, auditoria completa e automação de processos de RH.
 
 ---
 
 ## 📋 Índice
 
-- [Contexto do Projeto](#contexto-do-projeto)
-- [Objetivo da Solução](#objetivo-da-solução)
-- [Regras de Negócio](#regras-de-negócio)
-- [Arquitetura do Projeto](#arquitetura-do-projeto)
-- [Modelagem do Banco](#modelagem-do-banco)
-- [Objetos Implementados](#objetos-implementados)
-- [Massa de Dados](#massa-de-dados)
-- [Tecnologias](#tecnologias)
-- [Fluxo do Sistema](#fluxo-do-sistema)
-- [Segurança e Integridade](#segurança-e-integridade)
-- [Equipe](#equipe)
-- [Professor e Turma](#professor-e-turma)
+| Seção | Descrição |
+|-------|-----------|
+| [Contexto do Projeto](#-contexto-do-projeto) | Entenda o problema e o cenário |
+| [Objetivo da Solução](#-objetivo-da-solução) | O que o sistema entrega |
+| [Regras de Negócio](#-regras-de-negócio) | Validações e controles |
+| [Arquitetura do Projeto](#-arquitetura-do-projeto) | Estrutura de arquivos |
+| [Modelagem do Banco](#-modelagem-do-banco) | Entidades e relacionamentos |
+| [Objetos Implementados](#-objetos-implementados) | Functions, Triggers, Procedures, Views |
+| [Massa de Dados](#-massa-de-dados) | Volume e geração de dados |
+| [Tecnologias](#-tecnologias) | Stack utilizada |
+| [Fluxo do Sistema](#-fluxo-do-sistema) | Como os dados fluem |
+| [Segurança e Integridade](#-segurança-e-integridade) | Camadas de proteção |
+| [Equipe](#-equipe) | Responsabilidades |
+| [Professor e Turma](#-professor-e-turma) | Informações acadêmicas |
 
 ---
 
@@ -30,12 +32,12 @@ O **Smart Benefits** simula um motor inteligente de benefícios corporativos ins
 
 Cada colaborador possui um **cartão corporativo** com múltiplos **"bolsos"** de saldo segregados por finalidade:
 
-| Tipo de Bolso | Finalidade         | Emoji |
-|---------------|--------------------|-------|
-| **FOOD**      | Vale Alimentação   | 🥗     |
-| **MEAL**      | Vale Refeição      | 🍽️     |
-| **MOBILITY**  | Vale Mobilidade    | 🚗     |
-| **CULTURE**   | Vale Cultura       | 🎭     |
+| Tipo de Bolso | Finalidade | Emoji |
+|---------------|------------|-------|
+| **FOOD** | Vale Alimentação | 🥗 |
+| **MEAL** | Vale Refeição | 🍽️ |
+| **MOBILITY** | Vale Mobilidade | 🚗 |
+| **CULTURE** | Vale Cultura | 🎭 |
 
 ### O Problema
 
@@ -75,15 +77,15 @@ Os estabelecimentos possuem categorias MCC vinculadas a um **único tipo de bols
 
 #### Exemplo de mapeamento:
 
-| MCC  | Categoria       | Bolso Permitido |
-|------|----------------|-----------------|
-| 5411 | Supermercado    | FOOD 🥗         |
-| 5812 | Restaurante     | MEAL 🍽️         |
-| 4111 | Transporte      | MOBILITY 🚗     |
-| 7832 | Cinema          | CULTURE 🎭      |
-| 5814 | Fast Food       | MEAL 🍽️         |
-| 4121 | Táxi            | MOBILITY 🚗     |
-| 7922 | Teatro          | CULTURE 🎭      |
+| MCC | Categoria | Bolso Permitido |
+|-----|-----------|-----------------|
+| 5411 | Supermercado | FOOD 🥗 |
+| 5812 | Restaurante | MEAL 🍽️ |
+| 4111 | Transporte | MOBILITY 🚗 |
+| 7832 | Cinema | CULTURE 🎭 |
+| 5814 | Fast Food | MEAL 🍽️ |
+| 4121 | Táxi | MOBILITY 🚗 |
+| 7922 | Teatro | CULTURE 🎭 |
 
 ### 3. Validação de Transação
 
@@ -134,8 +136,8 @@ O sistema foi modelado utilizando **normalização** (3ª Forma Normal) e **inte
 
 ### Entidades Principais
 
-| Entidade | Descrição | Quantidade de Registros |
-|----------|-----------|-------------------------|
+| Entidade | Descrição | Quantidade |
+|----------|-----------|------------|
 | `tb_grupo_empresarial` | Grupos do ecossistema J&F | 8 |
 | `tb_empresa` | Empresas vinculadas aos grupos | 40+ |
 | `tb_colaborador` | Colaboradores com seus cargos | 200 |
@@ -149,7 +151,7 @@ O sistema foi modelado utilizando **normalização** (3ª Forma Normal) e **inte
 | `tb_carga_mensal_item` | Itens das cargas mensais | 2.400+ |
 | `tb_auditoria_transacao` | Logs de auditoria | Variável |
 
-### Diagrama ERD (Entidade-Relacionamento)
+### Diagrama ERD
 
 ```
 ┌─────────────────────┐     ┌─────────────────────┐
@@ -160,24 +162,20 @@ O sistema foi modelado utilizando **normalização** (3ª Forma Normal) e **inte
 │ cnpj_raiz           │     │ nome                │
 └─────────────────────┘     └──────────┬──────────┘
                                        │
-                                     1 │
-                                       │
 ┌─────────────────────┐     ┌──────────▼──────────┐
 │    tb_cartao        │     │  tb_colaborador     │
 ├─────────────────────┤     ├─────────────────────┤
 │ id_cartao (PK)      │     │ id_colaborador (PK) │
 │ id_colaborador (FK) │<────│ id_empresa (FK)     │
-│ numero_tokenizado   │     │ nome                │
-└──────────┬──────────┘     │ cpf                 │
-           │                 │ matricula           │
-         1 │                 └─────────────────────┘
+│ numero_tokenizado   │     │ nome, cpf, matricula│
+└──────────┬──────────┘     └─────────────────────┘
            │
 ┌──────────▼──────────┐     ┌─────────────────────┐
 │   tb_saldo_bolso    │     │   tb_tipo_bolso     │
 ├─────────────────────┤     ├─────────────────────┤
 │ id_saldo_bolso (PK) │     │ id_tipo_bolso (PK)  │
-│ id_cartao (FK)      │────<│ codigo              │
-│ id_tipo_bolso (FK)  │────>│ descricao           │
+│ id_cartao (FK)      │────<│ codigo, descricao   │
+│ id_tipo_bolso (FK)  │────>│                     │
 │ saldo_atual         │     └─────────────────────┘
 └─────────────────────┘
 
@@ -185,19 +183,17 @@ O sistema foi modelado utilizando **normalização** (3ª Forma Normal) e **inte
 │ tb_categoria_mcc    │     │ tb_estabelecimento  │
 ├─────────────────────┤     ├─────────────────────┤
 │ id_categoria_mcc(PK)│     │ id_estabelecimento  │
-│ mcc                 │     │ id_categoria_mcc(FK)│
-│ id_tipo_bolso (FK)  │────<│ nome                │
+│ mcc, descricao      │     │ id_categoria_mcc(FK)│
+│ id_tipo_bolso (FK)  │────<│ nome, cidade, uf    │
 └─────────────────────┘     └──────────┬──────────┘
-                                       │
                                        │
 ┌─────────────────────┐     ┌──────────▼──────────┐
 │   tb_transacao      │     │ tb_auditoria_transacao
 ├─────────────────────┤     ├─────────────────────┤
 │ id_transacao (PK)   │     │ id_auditoria (PK)   │
-│ id_cartao (FK)      │     │ operacao            │
-│ id_estabelecimento  │     │ descricao           │
-│ valor               │     │ data_hora           │
-│ status              │     └─────────────────────┘
+│ id_cartao (FK)      │     │ operacao, descricao │
+│ id_estabelecimento  │     │ data_hora, usuario  │
+│ valor, status       │     └─────────────────────┘
 └─────────────────────┘
 ```
 
@@ -278,46 +274,23 @@ O projeto utiliza **geração automática de dados** com:
 ## 🔄 Fluxo do Sistema
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           FLUXO COMPLETO DO SISTEMA                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-    ┌──────────────┐
-    │  Colaborador │
-    └──────┬───────┘
-           │
-           ▼
-    ┌──────────────┐
-    │Cartão Corporativo│
-    └──────┬───────┘
-           │
-           ▼
-    ┌──────────────┐
-    │ Bolso (FOOD) │     ┌──────────────┐
-    │ Bolso (MEAL) │     │ Carga Mensal │
-    │ Bolso (MOB)  │     │ (Procedure)  │
-    │ Bolso (CULT) │     └──────┬───────┘
-    └──────┬───────┘            │
-           │                    │
-           ▼                    │
-    ┌──────────────┐            │
-    │  Transação   │            │
-    └──────┬───────┘            │
-           │                    │
-           ▼                    │
-    ┌──────────────┐            │
-    │  Validação   │────────────┘
-    │  (Function)  │
-    └──────┬───────┘
-           │
-     ┌─────┴─────┐
-     │           │
-     ▼           ▼
-┌────────┐  ┌────────────┐
-│APROVADA│  │ BLOQUEADA  │
-│Debita  │  │ Auditoria  │
-│Saldo   │  │ Registra   │
-└────────┘  └────────────┘
+Colaborador
+     │
+     ▼
+Cartão Corporativo
+     │
+     ▼
+Bolsos (FOOD, MEAL, MOBILITY, CULTURE) ◄─── Carga Mensal (Procedure)
+     │
+     ▼
+Transação
+     │
+     ▼
+Validação (Function)
+     │
+     ├──► Aprovada → Debita Saldo → Sucesso
+     │
+     └──► Bloqueada → Auditoria → Registra Log
 ```
 
 ---
@@ -330,14 +303,12 @@ O projeto implementa múltiplas camadas de proteção:
 |--------|-----------|
 | **Integridade Referencial** | PK/FK constraints |
 | **Validação de Regras** | Function com validações antes do INSERT |
-| **Bloqueio Automático** | Trigger com RETURN NULL (sem RAISE EXCEPTION) |
+| **Bloqueio Automático** | Trigger com RETURN NULL |
 | **Auditoria Transacional** | Tabelas de log com NEW/OLD/TG_OP |
 | **Rastreabilidade** | CURRENT_USER capturado em todas as operações |
 | **Segregação de Saldo** | Validação por MCC e tipo de bolso |
 
----
-
-## 📝 Exemplo de Auditoria
+### Exemplo de Auditoria
 
 ```sql
 -- Registro gerado ao tentar usar benefício FOOD em restaurante
@@ -404,6 +375,9 @@ A arquitetura é **escalável**, **auditável** e **segura**, atendendo todos os
 
 ---
 
-**🚀 Smart Benefits - Motor de Benefícios Inteligente**  
+---
+
+**🚀 Smart Benefits - Motor de Benefícios Inteligente**
+
 *Projeto desenvolvido para a disciplina de Modelagem de Dados - 2º Ano*
 ```
